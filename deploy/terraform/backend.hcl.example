@@ -1,0 +1,7 @@
+# Copy to backend.hcl and run: terraform init -backend-config=backend.hcl
+# This is the state of the portal's own footprint, kept apart from environment state.
+bucket         = "my-org-terraform-state"
+key            = "env-portal/terraform.tfstate"
+region         = "eu-central-1"
+dynamodb_table = "my-org-terraform-locks"
+encrypt        = true

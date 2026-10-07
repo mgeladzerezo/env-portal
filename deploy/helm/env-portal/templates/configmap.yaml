@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "env-portal.fullname" . }}
+  labels:
+    {{- include "env-portal.labels" . | nindent 4 }}
+data:
+  PORTAL_QUEUE_BACKEND: celery
+  PORTAL_STATE_BACKEND: s3
+  PORTAL_STATE_BUCKET: {{ required "config.stateBucket is required" .Values.config.stateBucket | quote }}
+  PORTAL_STATE_LOCK_TABLE: {{ required "config.stateLockTable is required" .Values.config.stateLockTable | quote }}
+  PORTAL_STATE_REGION: {{ .Values.config.awsRegion | quote }}
+  PORTAL_AWS_REGION: {{ .Values.config.awsRegion | quote }}
+  PORTAL_PROVISIONER_ROLE_ARNS: {{ .Values.config.provisionerRoleArns | toJson | quote }}
+  PORTAL_TEMPLATE_INPUTS: {{ .Values.config.templateInputs | toJson | quote }}
+  PORTAL_EKS_CLUSTER_NAME: {{ .Values.config.eksClusterName | quote }}
+  PORTAL_POLICY_CHECKER: {{ .Values.config.policyChecker | quote }}
+  PORTAL_COST_ESTIMATOR: {{ .Values.config.costEstimator | quote }}
+  PORTAL_USER_HEADER: {{ .Values.config.userHeader | quote }}
+  PORTAL_MAINTENANCE_INTERVAL_SECONDS: {{ .Values.config.maintenanceIntervalSeconds | quote }}
+  PORTAL_COMMAND_TIMEOUT_SECONDS: {{ .Values.config.commandTimeoutSeconds | quote }}

@@ -1,0 +1,7 @@
+region                        = "eu-central-1"
+cluster_name                  = "shared-dev"
+oidc_provider_arn             = "arn:aws:iam::123456789012:oidc-provider/oidc.eks.eu-central-1.amazonaws.com/id/EXAMPLE"
+oidc_issuer                   = "oidc.eks.eu-central-1.amazonaws.com/id/EXAMPLE"
+environment_instance_role_arn = "arn:aws:iam::123456789012:role/env-portal-environment-vm"
+github_repository             = "my-org/env-portal"
+github_oidc_provider_arn      = "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"

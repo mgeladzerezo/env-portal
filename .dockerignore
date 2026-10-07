@@ -1,0 +1,11 @@
+**/.venv
+**/node_modules
+**/__pycache__
+**/.terraform
+**/.pytest_cache
+**/.ruff_cache
+**/.portal
+frontend/dist
+backend/tests
+*.db
+.git

@@ -1,0 +1,182 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TERRAFORM_VERSION: 1.9.8
+  REGISTRY_PREFIX: env-portal
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: ruff format --check .
+      # With Terraform on PATH the integration tests run too (terraform_data, local
+      # state: no credentials needed). The wrapper script would garble the output.
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+      - run: pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run build
+
+  api-contract:
+    # The frontend's types are generated from the API's OpenAPI document. Fail when the
+    # committed copies no longer match the backend.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: pip install -e backend
+      - run: python backend/scripts/export_openapi.py frontend/openapi.json
+      - run: npm ci && npm run gen:api
+        working-directory: frontend
+      - run: git diff --exit-code -- frontend/openapi.json frontend/src/api/schema.d.ts
+
+  terraform:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        directory:
+          - modules/vm-database/v1
+          - modules/static-site/v1
+          - modules/k8s-namespace/v1
+          - modules/local-demo/v1
+          - deploy/terraform  # also covers modules/*/provisioner-role
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+      - run: terraform fmt -check -recursive modules deploy/terraform
+      - run: terraform -chdir=${{ matrix.directory }} init -backend=false -input=false
+      - run: terraform -chdir=${{ matrix.directory }} validate
+
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - run: helm lint deploy/helm/env-portal --strict -f deploy/helm/env-portal/ci/test-values.yaml
+      - run: helm template portal deploy/helm/env-portal -f deploy/helm/env-portal/ci/test-values.yaml > /dev/null
+
+  iac-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy misconfiguration scan (Terraform, Helm, Dockerfiles)
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          scan-type: config
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+
+  images:
+    needs: [backend, frontend, api-contract, terraform, helm]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: api
+            context: .
+            file: backend/Dockerfile
+            target: api
+          - name: worker
+            context: .
+            file: backend/Dockerfile
+            target: worker
+          - name: frontend
+            context: frontend
+            file: frontend/Dockerfile
+            target: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          target: ${{ matrix.target }}
+          load: true
+          tags: ${{ env.REGISTRY_PREFIX }}/${{ matrix.name }}:${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          image-ref: ${{ env.REGISTRY_PREFIX }}/${{ matrix.name }}:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+      # Pushing needs the CI role from deploy/terraform (output ci_role_arn) stored as
+      # the repository variable AWS_CI_ROLE_ARN. Without it the pipeline stops here.
+      - name: Configure AWS credentials
+        if: github.ref == 'refs/heads/main' && vars.AWS_CI_ROLE_ARN != ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_CI_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Log in to ECR
+        id: ecr
+        if: github.ref == 'refs/heads/main' && vars.AWS_CI_ROLE_ARN != ''
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Push
+        if: github.ref == 'refs/heads/main' && vars.AWS_CI_ROLE_ARN != ''
+        env:
+          LOCAL: ${{ env.REGISTRY_PREFIX }}/${{ matrix.name }}:${{ github.sha }}
+          REMOTE: ${{ steps.ecr.outputs.registry }}/${{ env.REGISTRY_PREFIX }}/${{ matrix.name }}:${{ github.sha }}
+        run: |
+          docker tag "$LOCAL" "$REMOTE"
+          docker push "$REMOTE"

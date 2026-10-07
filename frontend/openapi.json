@@ -1,0 +1,1194 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Environment portal",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/templates": {
+      "get": {
+        "summary": "List Templates",
+        "operationId": "list_templates_api_templates_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TemplateOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Templates Api Templates Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/estimates": {
+      "post": {
+        "summary": "Estimate Cost",
+        "operationId": "estimate_cost_api_estimates_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EstimateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstimateOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/environments": {
+      "post": {
+        "summary": "Create Environment",
+        "operationId": "create_environment_api_environments_post",
+        "parameters": [
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 128
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnvironmentCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvironmentOut"
+                }
+              }
+            }
+          },
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvironmentOut"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List Environments",
+        "operationId": "list_environments_api_environments_get",
+        "parameters": [
+          {
+            "name": "mine",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Mine"
+            }
+          },
+          {
+            "name": "include_destroyed",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true,
+              "title": "Include Destroyed"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EnvironmentOut"
+                  },
+                  "title": "Response List Environments Api Environments Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/environments/{environment_id}": {
+      "get": {
+        "summary": "Get Environment",
+        "operationId": "get_environment_api_environments__environment_id__get",
+        "parameters": [
+          {
+            "name": "environment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Environment Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvironmentOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/environments/{environment_id}/retry": {
+      "post": {
+        "summary": "Retry Environment",
+        "operationId": "retry_environment_api_environments__environment_id__retry_post",
+        "parameters": [
+          {
+            "name": "environment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Environment Id"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvironmentOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/environments/{environment_id}/destroy": {
+      "post": {
+        "summary": "Destroy Environment",
+        "operationId": "destroy_environment_api_environments__environment_id__destroy_post",
+        "parameters": [
+          {
+            "name": "environment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Environment Id"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvironmentOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/environments/{environment_id}/unlock": {
+      "post": {
+        "summary": "Unlock Environment",
+        "operationId": "unlock_environment_api_environments__environment_id__unlock_post",
+        "parameters": [
+          {
+            "name": "environment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Environment Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnlockRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvironmentOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/environments/{environment_id}/logs": {
+      "get": {
+        "summary": "Get Logs",
+        "operationId": "get_logs_api_environments__environment_id__logs_get",
+        "parameters": [
+          {
+            "name": "environment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Environment Id"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "After"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 500,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LogLineOut"
+                  },
+                  "title": "Response Get Logs Api Environments  Environment Id  Logs Get"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/environments/{environment_id}/logs/stream": {
+      "get": {
+        "summary": "Stream Logs",
+        "operationId": "stream_logs_api_environments__environment_id__logs_stream_get",
+        "parameters": [
+          {
+            "name": "environment_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Environment Id"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "After"
+            }
+          },
+          {
+            "name": "last-event-id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Last-Event-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CostItemOut": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "hourly_usd": {
+            "type": "number",
+            "title": "Hourly Usd"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "hourly_usd"
+        ],
+        "title": "CostItemOut"
+      },
+      "EnvironmentCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{1,22}[a-z0-9]$",
+            "title": "Name"
+          },
+          "template": {
+            "type": "string",
+            "title": "Template"
+          },
+          "size": {
+            "type": "string",
+            "title": "Size"
+          },
+          "ttl_hours": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Ttl Hours"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "template",
+          "size",
+          "ttl_hours"
+        ],
+        "title": "EnvironmentCreate"
+      },
+      "EnvironmentOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "owner": {
+            "type": "string",
+            "title": "Owner"
+          },
+          "template": {
+            "type": "string",
+            "title": "Template"
+          },
+          "module_version": {
+            "type": "string",
+            "title": "Module Version"
+          },
+          "size": {
+            "type": "string",
+            "title": "Size"
+          },
+          "ttl_hours": {
+            "type": "integer",
+            "title": "Ttl Hours"
+          },
+          "status": {
+            "$ref": "#/components/schemas/EnvironmentStatus"
+          },
+          "hourly_cost_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hourly Cost Usd"
+          },
+          "outputs": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Outputs"
+          },
+          "policy_violations": {
+            "items": {
+              "$ref": "#/components/schemas/ViolationOut"
+            },
+            "type": "array",
+            "title": "Policy Violations"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "lock_info": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LockOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "destroyed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destroyed At"
+          },
+          "active_operation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OperationOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_operation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OperationOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "owner",
+          "template",
+          "module_version",
+          "size",
+          "ttl_hours",
+          "status",
+          "hourly_cost_usd",
+          "outputs",
+          "policy_violations",
+          "error",
+          "lock_info",
+          "created_at",
+          "updated_at",
+          "expires_at",
+          "destroyed_at",
+          "active_operation",
+          "last_operation"
+        ],
+        "title": "EnvironmentOut"
+      },
+      "EnvironmentStatus": {
+        "type": "string",
+        "enum": [
+          "requested",
+          "planning",
+          "blocked_by_policy",
+          "applying",
+          "ready",
+          "failed",
+          "destroying",
+          "destroyed"
+        ],
+        "title": "EnvironmentStatus"
+      },
+      "ErrorOut": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "ErrorOut"
+      },
+      "EstimateOut": {
+        "properties": {
+          "template": {
+            "type": "string",
+            "title": "Template"
+          },
+          "size": {
+            "type": "string",
+            "title": "Size"
+          },
+          "ttl_hours": {
+            "type": "integer",
+            "title": "Ttl Hours"
+          },
+          "hourly_usd": {
+            "type": "number",
+            "title": "Hourly Usd"
+          },
+          "total_usd": {
+            "type": "number",
+            "title": "Total Usd"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CostItemOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          }
+        },
+        "type": "object",
+        "required": [
+          "template",
+          "size",
+          "ttl_hours",
+          "hourly_usd",
+          "total_usd",
+          "items",
+          "source"
+        ],
+        "title": "EstimateOut"
+      },
+      "EstimateRequest": {
+        "properties": {
+          "template": {
+            "type": "string",
+            "title": "Template"
+          },
+          "size": {
+            "type": "string",
+            "title": "Size"
+          },
+          "ttl_hours": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Ttl Hours"
+          }
+        },
+        "type": "object",
+        "required": [
+          "template",
+          "size",
+          "ttl_hours"
+        ],
+        "title": "EstimateRequest"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LockOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "who": {
+            "type": "string",
+            "title": "Who",
+            "default": ""
+          },
+          "operation": {
+            "type": "string",
+            "title": "Operation",
+            "default": ""
+          },
+          "created": {
+            "type": "string",
+            "title": "Created",
+            "default": ""
+          },
+          "path": {
+            "type": "string",
+            "title": "Path",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "LockOut"
+      },
+      "LogLineOut": {
+        "properties": {
+          "seq": {
+            "type": "integer",
+            "title": "Seq"
+          },
+          "operation_id": {
+            "type": "integer",
+            "title": "Operation Id"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "seq",
+          "operation_id",
+          "message",
+          "created_at"
+        ],
+        "title": "LogLineOut"
+      },
+      "OperationKind": {
+        "type": "string",
+        "enum": [
+          "provision",
+          "destroy",
+          "unlock"
+        ],
+        "title": "OperationKind"
+      },
+      "OperationOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/OperationKind"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OperationStatus"
+          },
+          "requested_by": {
+            "type": "string",
+            "title": "Requested By"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "requested_by",
+          "error_code",
+          "error",
+          "created_at",
+          "started_at",
+          "finished_at"
+        ],
+        "title": "OperationOut"
+      },
+      "OperationStatus": {
+        "type": "string",
+        "enum": [
+          "queued",
+          "running",
+          "succeeded",
+          "failed"
+        ],
+        "title": "OperationStatus"
+      },
+      "SizeOut": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "hourly_usd": {
+            "type": "number",
+            "title": "Hourly Usd"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "description",
+          "hourly_usd"
+        ],
+        "title": "SizeOut"
+      },
+      "TemplateOut": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "module_version": {
+            "type": "string",
+            "title": "Module Version"
+          },
+          "sizes": {
+            "items": {
+              "$ref": "#/components/schemas/SizeOut"
+            },
+            "type": "array",
+            "title": "Sizes"
+          },
+          "default_ttl_hours": {
+            "type": "integer",
+            "title": "Default Ttl Hours"
+          },
+          "max_ttl_hours": {
+            "type": "integer",
+            "title": "Max Ttl Hours"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "title",
+          "description",
+          "module_version",
+          "sizes",
+          "default_ttl_hours",
+          "max_ttl_hours"
+        ],
+        "title": "TemplateOut"
+      },
+      "UnlockRequest": {
+        "properties": {
+          "lock_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Lock Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lock_id"
+        ],
+        "title": "UnlockRequest"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "ViolationOut": {
+        "properties": {
+          "rule": {
+            "type": "string",
+            "title": "Rule"
+          },
+          "resource": {
+            "type": "string",
+            "title": "Resource"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rule",
+          "resource",
+          "message"
+        ],
+        "title": "ViolationOut"
+      }
+    }
+  }
+}

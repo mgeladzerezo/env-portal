@@ -1,0 +1,96 @@
+# Local development stack. Terraform state is kept on a volume (local backend) and the
+# local-demo template is enabled, so the whole request -> apply -> destroy flow works
+# without AWS credentials. The AWS templates are listed but need real credentials and
+# PORTAL_TEMPLATE_INPUTS to apply.
+
+x-backend: &backend
+  build:
+    context: .
+    dockerfile: backend/Dockerfile
+  environment: &backend-env
+    PORTAL_DATABASE_URL: postgresql+psycopg://portal:portal@postgres:5432/portal
+    PORTAL_CELERY_BROKER_URL: redis://redis:6379/0
+    PORTAL_QUEUE_BACKEND: celery
+    PORTAL_STATE_BACKEND: local
+    PORTAL_ENABLE_DEMO_TEMPLATE: "true"
+    PORTAL_POLICY_CHECKER: conftest
+    PORTAL_DEV_USER: dev@example.com
+  depends_on:
+    migrate:
+      condition: service_completed_successfully
+    redis:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: portal
+      POSTGRES_PASSWORD: portal
+      POSTGRES_DB: portal
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U portal"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: api
+    command: ["alembic", "upgrade", "head"]
+    environment: *backend-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    <<: *backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: api
+    ports:
+      - "8000:8000"
+
+  worker:
+    <<: *backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: worker
+    volumes:
+      - portal-data:/var/lib/portal
+
+  beat:
+    <<: *backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: worker
+    command: ["celery", "--app", "portal.worker.tasks:celery_app", "beat", "--loglevel", "INFO", "--schedule", "/tmp/celerybeat-schedule"]
+
+  frontend:
+    build:
+      context: frontend
+    environment:
+      API_UPSTREAM: http://api:8000
+    ports:
+      - "8080:8080"
+    depends_on:
+      - api
+
+volumes:
+  postgres-data:
+  portal-data:

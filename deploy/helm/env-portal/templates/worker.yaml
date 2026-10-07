@@ -1,0 +1,117 @@
+{{- $component := dict "root" $ "component" "worker" -}}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.worker.serviceAccount.name }}
+  labels:
+    {{- include "env-portal.labels" . | nindent 4 }}
+  annotations:
+    # IRSA: pods using this service account get credentials for the worker role, which
+    # may only touch environment state and assume the per-template provisioner roles.
+    eks.amazonaws.com/role-arn: {{ required "worker.serviceAccount.roleArn is required" .Values.worker.serviceAccount.roleArn | quote }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "env-portal.fullname" . }}-worker
+  labels:
+    {{- include "env-portal.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  selector:
+    matchLabels:
+      {{- include "env-portal.selectorLabels" $component | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "env-portal.selectorLabels" $component | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ .Values.worker.serviceAccount.name }}
+      terminationGracePeriodSeconds: {{ .Values.worker.terminationGracePeriodSeconds }}
+      securityContext:
+        {{- include "env-portal.podSecurityContext" . | nindent 8 }}
+      containers:
+        - name: worker
+          image: {{ include "env-portal.image" $component }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - celery
+            - --app
+            - portal.worker.tasks:celery_app
+            - worker
+            - --loglevel
+            - INFO
+            - --concurrency
+            - {{ .Values.worker.concurrency | quote }}
+          {{- include "env-portal.backendEnv" . | nindent 10 }}
+            # Terraform and the AWS SDK write under $HOME; the root filesystem is read-only.
+            - name: HOME
+              value: /tmp
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+          securityContext:
+            {{- include "env-portal.containerSecurityContext" . | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/portal
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        # Workspaces and the provider cache are disposable: state lives in S3, and a new
+        # pod re-creates the workspace before every operation.
+        - name: data
+          emptyDir:
+            sizeLimit: {{ .Values.worker.workspace.sizeLimit }}
+        - name: tmp
+          emptyDir: {}
+---
+# Exactly one scheduler: two beats would run the maintenance task twice per interval.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "env-portal.fullname" . }}-beat
+  labels:
+    {{- include "env-portal.labels" . | nindent 4 }}
+    app.kubernetes.io/component: beat
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "env-portal.selectorLabels" (dict "root" $ "component" "beat") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "env-portal.selectorLabels" (dict "root" $ "component" "beat") | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        {{- include "env-portal.podSecurityContext" . | nindent 8 }}
+      containers:
+        - name: beat
+          image: {{ include "env-portal.image" $component }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - celery
+            - --app
+            - portal.worker.tasks:celery_app
+            - beat
+            - --loglevel
+            - INFO
+            - --schedule
+            - /tmp/celerybeat-schedule
+          {{- include "env-portal.backendEnv" . | nindent 10 }}
+          resources:
+            {{- toYaml .Values.beat.resources | nindent 12 }}
+          securityContext:
+            {{- include "env-portal.containerSecurityContext" . | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: env-portal
+description: Self-service portal that provisions short-lived environments with Terraform
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

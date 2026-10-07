@@ -1,0 +1,81 @@
+image:
+  # Registry and path prefix; the chart appends /api, /worker and /frontend.
+  repository: 123456789012.dkr.ecr.eu-central-1.amazonaws.com/env-portal
+  tag: ""  # defaults to the chart appVersion
+  pullPolicy: IfNotPresent
+
+# Secret that must exist in the namespace with the keys:
+#   database-url  e.g. postgresql+psycopg://user:pass@host:5432/portal
+#   broker-url    e.g. rediss://:pass@host:6379/0
+existingSecret: env-portal
+
+config:
+  awsRegion: eu-central-1
+  stateBucket: ""       # terraform output state_bucket
+  stateLockTable: ""    # terraform output state_lock_table
+  # terraform output provisioner_role_arns
+  provisionerRoleArns: {}
+  # Platform-owned inputs per template, e.g.
+  #   vm-database: {vpc_id: vpc-..., subnet_ids: [subnet-a, subnet-b], instance_profile_name: ...}
+  templateInputs: {}
+  eksClusterName: ""
+  policyChecker: conftest
+  costEstimator: static
+  # Header set by the authenticating proxy in front of the ingress.
+  userHeader: X-Forwarded-User
+  maintenanceIntervalSeconds: 60
+  commandTimeoutSeconds: 3600
+
+api:
+  replicas: 2
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {memory: 512Mi}
+
+worker:
+  replicas: 2
+  # Terraform runs per worker pod at the same time.
+  concurrency: 2
+  serviceAccount:
+    # Must match worker_service_account in deploy/terraform.
+    name: env-portal-worker
+    # terraform output worker_role_arn
+    roleArn: ""
+  # On shutdown Celery stops taking tasks and finishes the running Terraform command.
+  # Keep this at least as long as config.commandTimeoutSeconds.
+  terminationGracePeriodSeconds: 3600
+  resources:
+    requests: {cpu: 250m, memory: 512Mi}
+    limits: {memory: 2Gi}
+  workspace:
+    sizeLimit: 5Gi
+
+beat:
+  resources:
+    requests: {cpu: 20m, memory: 128Mi}
+    limits: {memory: 256Mi}
+
+frontend:
+  replicas: 2
+  resources:
+    requests: {cpu: 20m, memory: 32Mi}
+    limits: {memory: 128Mi}
+
+ingress:
+  enabled: true
+  className: alb
+  host: portal.example.com
+  annotations: {}
+  tls:
+    enabled: false
+    secretName: ""
+
+serviceMonitor:
+  enabled: false
+  interval: 30s
+
+# ClusterRole and binding for the Kubernetes group that the k8s-namespace provisioner
+# role is mapped to. Enable when the portal runs on the cluster it creates namespaces in.
+provisionerRbac:
+  enabled: false
+  group: env-portal-provisioners

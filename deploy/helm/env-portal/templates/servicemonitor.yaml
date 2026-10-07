@@ -1,0 +1,16 @@
+{{- if .Values.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "env-portal.fullname" . }}-api
+  labels:
+    {{- include "env-portal.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "env-portal.selectorLabels" (dict "root" $ "component" "api") | nindent 6 }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.serviceMonitor.interval }}
+{{- end }}

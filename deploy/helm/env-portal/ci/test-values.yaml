@@ -1,0 +1,21 @@
+# Values used by `helm lint` and `helm template` in CI. Not a real deployment.
+config:
+  stateBucket: env-portal-tfstate-123456789012
+  stateLockTable: env-portal-tfstate-locks
+  eksClusterName: shared-dev
+  provisionerRoleArns:
+    static-site: arn:aws:iam::123456789012:role/env-portal-provision-static-site
+    vm-database: arn:aws:iam::123456789012:role/env-portal-provision-vm-database
+    k8s-namespace: arn:aws:iam::123456789012:role/env-portal-provision-k8s-namespace
+  templateInputs:
+    vm-database:
+      vpc_id: vpc-0123456789abcdef0
+      subnet_ids: [subnet-aaa, subnet-bbb]
+      instance_profile_name: env-portal-environment-vm
+worker:
+  serviceAccount:
+    roleArn: arn:aws:iam::123456789012:role/env-portal-worker
+serviceMonitor:
+  enabled: true
+provisionerRbac:
+  enabled: true

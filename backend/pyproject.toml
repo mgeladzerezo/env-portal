@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "env-portal"
+version = "0.1.0"
+description = "Self-service portal that provisions short-lived environments with Terraform"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.30,<1",
+    "sqlalchemy>=2.0.30,<3",
+    "alembic>=1.13,<2",
+    "pydantic>=2.7,<3",
+    "pydantic-settings>=2.3,<3",
+    "psycopg[binary]>=3.2,<4",
+    "celery[redis]>=5.4,<6",
+    "prometheus-client>=0.20,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8,<9",
+    "httpx>=0.27,<1",
+    "ruff>=0.6",
+]
+
+[tool.setuptools.packages.find]
+include = ["portal*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: runs the real terraform binary; skipped when it is not found",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Header", "fastapi.Query"]
+
+[tool.ruff.lint.isort]
+# backend/alembic/ (the migrations folder) would otherwise make ruff treat the alembic
+# package as first-party.
+known-third-party = ["alembic"]

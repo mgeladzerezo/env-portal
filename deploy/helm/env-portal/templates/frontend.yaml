@@ -1,0 +1,58 @@
+{{- $component := dict "root" $ "component" "frontend" -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "env-portal.fullname" . }}-frontend
+  labels:
+    {{- include "env-portal.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+spec:
+  replicas: {{ .Values.frontend.replicas }}
+  selector:
+    matchLabels:
+      {{- include "env-portal.selectorLabels" $component | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "env-portal.selectorLabels" $component | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: frontend
+          image: {{ include "env-portal.image" $component }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: API_UPSTREAM
+              value: http://{{ include "env-portal.fullname" . }}-api:8000
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "env-portal.fullname" . }}-frontend
+  labels:
+    {{- include "env-portal.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+spec:
+  selector:
+    {{- include "env-portal.selectorLabels" $component | nindent 4 }}
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
